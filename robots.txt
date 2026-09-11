@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://songokura.github.io/electroservice/sitemap.xml
