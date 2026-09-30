@@ -1,5 +1,5 @@
 /* ============================================================
-   ЭЛЕКТРОСЕРВИС - скрипт страницы (светлая версия, 30.09.2026).
+   ЭЛЕКТРОСЕРВИС - скрипт страницы (тёмная версия, 30.09.2026).
    Анимаций прокрутки нет по просьбе клиента: ни плит, ни появлений,
    ни счётчиков. Здесь только: конверсии · перевод RU/KZ (словарь KZ -
    assets/lang/kk.js по клику, ?lang= сильнее localStorage) · меню ·
@@ -13,7 +13,8 @@ var root = document.documentElement;
 
 /* ---------------- КОНВЕРСИИ GOOGLE ADS ----------------
    Ярлыки задаёт index.html (window.ES_CONV). Клики по телефону и WhatsApp
-   ловим делегированием, переход не блокируем. Пустой ярлык - событие не шлём. */
+   ловим делегированием в фазе захвата, переход не блокируем.
+   Пустой ярлык - событие не шлём. */
 function conv(key){
   var id = (window.ES_CONV || {})[key];
   if (!id || typeof window.gtag !== "function") return;
@@ -53,7 +54,9 @@ function curLang(){ return root.lang === "kk" ? "kk" : "ru"; }
 function T(k){ return pick(k, curLang() === "kk") || ""; }
 function plain(html){ var d = document.createElement("div"); d.innerHTML = html; return d.textContent; }
 
-/* текст заявки собирается из заголовка услуги на текущем языке */
+/* текст заявки собирается из заголовка услуги на текущем языке.
+   Ссылки переписываются заранее (не в момент клика), поэтому трекер
+   LeadBot дописывает код обращения уже в готовый href. */
 function setWaLinks(){
   var L = curLang();
   document.querySelectorAll("[data-wa]").forEach(function(a){
@@ -188,21 +191,25 @@ document.querySelectorAll(".lnav[data-lane]").forEach(function(nav){
 
 /* ---------------- ВИДЕО ПО НАЖАТИЮ ----------------
    Сами ролики не включаются: в карточке постер и кнопка. По нажатию
-   на месте постера появляется плеер со звуком, остальные ставятся на паузу. */
+   на месте постера появляется плеер со звуком (карточка раскрывается
+   до 9:16, чтобы ролик был виден целиком), остальные ставятся на паузу. */
 document.addEventListener("click", function(e){
   var b = e.target.closest(".vbtn[data-video]"); if (!b) return;
   document.querySelectorAll(".vcard video").forEach(function(v){ v.pause(); });
+  var card = b.closest(".vcard");
   var v = document.createElement("video");
   v.src = b.dataset.video;
   v.controls = true; v.playsInline = true; v.setAttribute("playsinline", "");
   v.preload = "auto";
-  var img = b.querySelector("img"); if (img) v.poster = img.src;
+  var img = b.querySelector("img"); if (img) v.poster = img.currentSrc || img.src;
   v.setAttribute("aria-label", b.getAttribute("aria-label") || "");
   v.addEventListener("play", function(){
     document.querySelectorAll(".vcard video").forEach(function(o){ if (o !== v) o.pause(); });
   });
+  if (card) card.classList.add("playing");
   b.replaceWith(v);
   var p = v.play(); if (p && p.catch) p.catch(function(){});
+  lanes.forEach(function(l){ l.state(); });
 });
 
 /* ---------------- ФОРМА → WhatsApp ---------------- */
